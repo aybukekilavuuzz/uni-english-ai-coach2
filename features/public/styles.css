@@ -357,16 +357,17 @@ body {
 }
 
 .quiz-option-btn.is-correct {
-  border-color: var(--color-success);
-  background: var(--color-success-bg);
-  color: #065f46;
-  font-weight: 600;
+  border-color: #059669 !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .quiz-option-btn.is-wrong {
-  border-color: #fca5a5;
-  background: var(--color-error-bg);
-  color: #991b1b;
+  border-color: #dc2626 !important;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .score-card {
