@@ -65,18 +65,28 @@ function showScoreCard() {
   quizList.appendChild(scoreCard);
 }
 
-function handleAnswer(qIndex, optIndex, optionsEl) {
-  if (optionsEl.dataset.answered === "1") return;
+function handleAnswer(event) {
+  const btn = event.currentTarget;
+  const optionsEl = btn.parentElement;
+  
+  if (!optionsEl || optionsEl.dataset.answered === "1") return;
   optionsEl.dataset.answered = "1";
+
+  const qIndex = parseInt(btn.dataset.qindex, 10);
+  const optIndex = parseInt(btn.dataset.optindex, 10);
 
   const questionData = currentQuizData[qIndex];
   const clickedOption = questionData.options[optIndex];
   const isCorrect = clickedOption.isCorrect;
 
+  console.log(`[handleAnswer] Soru Index: ${qIndex}, Şık Index: ${optIndex}, Seçilen Doğru mu: ${isCorrect}`, clickedOption);
+
   if (isCorrect) {
     userScore++;
   }
   answeredQuestions++;
+
+  console.log(`[Skor] Güncel Skor: ${userScore}/${currentQuizData.length}, Cevaplanan Soru: ${answeredQuestions}`);
 
   const buttons = optionsEl.querySelectorAll(".quiz-option-btn");
   questionData.options.forEach((optData, i) => {
@@ -154,9 +164,10 @@ function displayQuiz(quiz) {
       const letter = letters[optIndex] || "*";
       btn.textContent = `${letter}) ${optData.text}`;
       
+      btn.dataset.qindex = qIndex;
       btn.dataset.optindex = optIndex;
       
-      btn.addEventListener("click", () => handleAnswer(qIndex, optIndex, optionsEl));
+      btn.addEventListener("click", handleAnswer);
       optionsEl.appendChild(btn);
     });
 
@@ -220,3 +231,4 @@ analyzeBtn.addEventListener("click", async () => {
     toggleLoading(false);
   }
 });
+
