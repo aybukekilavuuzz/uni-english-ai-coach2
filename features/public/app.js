@@ -44,6 +44,10 @@ function renderTerms(terms) {
   });
 }
 
+let currentQuizData = [];
+let userScore = 0;
+let answeredQuestions = 0;
+
 function stripOptionPrefix(s) {
   return String(s || "").replace(/^[A-D][\.\)\-\:]\s*/i, "").trim();
 }
@@ -52,37 +56,41 @@ function normalizeAnswer(s) {
   return stripOptionPrefix(s).toLowerCase();
 }
 
-function showScoreCard(quizState) {
+function showScoreCard() {
   const scoreCard = document.createElement("div");
   scoreCard.className = "score-card";
   scoreCard.innerHTML = `
-    <h3 class="score-title">General Score: ${quizState.score}/${quizState.total}</h3>
+    <h3 class="score-title">General Score: ${userScore}/${currentQuizData.length}</h3>
   `;
   quizList.appendChild(scoreCard);
 }
 
-function onQuizOptionClick(btn, item, chosen, optionsEl, quizState) {
+function handleAnswer(qIndex, optIndex, optionsEl) {
   if (optionsEl.dataset.answered === "1") return;
   optionsEl.dataset.answered = "1";
 
-  const correctVal = normalizeAnswer(item.answer);
-  const isCorrect = normalizeAnswer(chosen) === correctVal;
+  const questionData = currentQuizData[qIndex];
+  const clickedOption = questionData.options[optIndex];
+  const isCorrect = clickedOption.isCorrect;
 
-  if (isCorrect) quizState.score++;
-  quizState.answeredCount++;
+  if (isCorrect) {
+    userScore++;
+  }
+  answeredQuestions++;
 
-  optionsEl.querySelectorAll(".quiz-option-btn").forEach((b) => {
-    b.disabled = true;
-    const label = normalizeAnswer(b.textContent);
-    if (label === correctVal) {
-      b.classList.add("is-correct");
-    } else if (b === btn && !isCorrect) {
-      b.classList.add("is-wrong");
+  const buttons = optionsEl.querySelectorAll(".quiz-option-btn");
+  questionData.options.forEach((optData, i) => {
+    buttons[i].disabled = true;
+    
+    if (optData.isCorrect) {
+      buttons[i].classList.add("correct");
+    } else if (i === optIndex && !isCorrect) {
+      buttons[i].classList.add("wrong");
     }
   });
 
-  if (quizState.answeredCount === quizState.total && quizState.total > 0) {
-    showScoreCard(quizState);
+  if (answeredQuestions === currentQuizData.length && currentQuizData.length > 0) {
+    showScoreCard();
   }
 }
 
@@ -95,40 +103,64 @@ function shuffleArray(array) {
   return arr;
 }
 
-function renderQuiz(quiz) {
+function displayQuiz(quiz) {
   quizList.innerHTML = "";
-  const quizState = { score: 0, answeredCount: 0, total: quiz.length };
+  
+  userScore = 0;
+  answeredQuestions = 0;
+  
+  currentQuizData = quiz.map(item => {
+    const normalizedCorrect = normalizeAnswer(item.answer);
+    
+    let optionsObjects = (item.options || []).map(optText => {
+      return {
+        text: stripOptionPrefix(optText),
+        isCorrect: normalizeAnswer(optText) === normalizedCorrect
+      };
+    });
+    
+    optionsObjects = shuffleArray(optionsObjects);
+    
+    if (optionsObjects.length > 0 && !optionsObjects.some(o => o.isCorrect)) {
+       optionsObjects[0].isCorrect = true; 
+    }
 
-  quiz.forEach((item) => {
+    return {
+      question: item.question || "",
+      options: optionsObjects
+    };
+  });
+
+  currentQuizData.forEach((qData, qIndex) => {
     const block = document.createElement("div");
     block.className = "quiz-question";
 
     const q = document.createElement("p");
     q.className = "quiz-q";
-    q.textContent = item.question || "";
+    q.textContent = qData.question;
     block.appendChild(q);
 
     const optionsEl = document.createElement("div");
     optionsEl.className = "quiz-options";
+    optionsEl.dataset.qindex = qIndex;
 
-    const shuffledOptions = shuffleArray(item.options || []);
     const letters = ["A", "B", "C", "D"];
 
-    shuffledOptions.forEach((opt, idx) => {
+    qData.options.forEach((optData, optIndex) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "quiz-option-btn";
       
-      const cleanOpt = stripOptionPrefix(opt);
-      const letter = letters[idx] || "*";
-      btn.textContent = `${letter}) ${cleanOpt}`;
+      const letter = letters[optIndex] || "*";
+      btn.textContent = `${letter}) ${optData.text}`;
       
-      btn.addEventListener("click", () => onQuizOptionClick(btn, item, cleanOpt, optionsEl, quizState));
+      btn.dataset.optindex = optIndex;
+      
+      btn.addEventListener("click", () => handleAnswer(qIndex, optIndex, optionsEl));
       optionsEl.appendChild(btn);
     });
 
     block.appendChild(optionsEl);
-
     quizList.appendChild(block);
   });
 }
@@ -177,7 +209,7 @@ analyzeBtn.addEventListener("click", async () => {
     const parsed = normalizeClientData(data);
     renderSummary(parsed.summary);
     renderTerms(parsed.terms);
-    renderQuiz(parsed.quiz);
+    displayQuiz(parsed.quiz);
 
     results.classList.remove("hidden");
     const source = data.source === "gemini" ? "Gemini" : "Mock";
