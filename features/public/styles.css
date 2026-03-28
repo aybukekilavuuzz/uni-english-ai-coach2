@@ -356,18 +356,22 @@ body {
   cursor: default;
 }
 
-.quiz-option-btn.is-correct {
+.quiz-option-btn.correct {
   border-color: #059669 !important;
   background: #10b981 !important;
   color: #ffffff !important;
   font-weight: 700 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
-.quiz-option-btn.is-wrong {
+.quiz-option-btn.wrong {
   border-color: #dc2626 !important;
   background: #ef4444 !important;
   color: #ffffff !important;
   font-weight: 700 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .score-card {
@@ -461,3 +465,4 @@ body {
     justify-content: center;
   }
 }
+
