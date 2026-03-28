@@ -44,16 +44,19 @@ function renderTerms(terms) {
   });
 }
 
+function stripOptionPrefix(s) {
+  return String(s || "").replace(/^[A-D][\.\)\-\:]\s*/i, "").trim();
+}
+
 function normalizeAnswer(s) {
-  return String(s || "").trim();
+  return stripOptionPrefix(s).toLowerCase();
 }
 
 function showScoreCard(quizState) {
   const scoreCard = document.createElement("div");
   scoreCard.className = "score-card";
   scoreCard.innerHTML = `
-    <h3 class="score-title">Genel Skor</h3>
-    <div class="score-value"><span>${quizState.score}</span> / ${quizState.total}</div>
+    <h3 class="score-title">General Score: ${quizState.score}/${quizState.total}</h3>
   `;
   quizList.appendChild(scoreCard);
 }
@@ -109,13 +112,18 @@ function renderQuiz(quiz) {
     optionsEl.className = "quiz-options";
 
     const shuffledOptions = shuffleArray(item.options || []);
+    const letters = ["A", "B", "C", "D"];
 
-    shuffledOptions.forEach((opt) => {
+    shuffledOptions.forEach((opt, idx) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "quiz-option-btn";
-      btn.textContent = opt;
-      btn.addEventListener("click", () => onQuizOptionClick(btn, item, opt, optionsEl, quizState));
+      
+      const cleanOpt = stripOptionPrefix(opt);
+      const letter = letters[idx] || "*";
+      btn.textContent = `${letter}) ${cleanOpt}`;
+      
+      btn.addEventListener("click", () => onQuizOptionClick(btn, item, cleanOpt, optionsEl, quizState));
       optionsEl.appendChild(btn);
     });
 
