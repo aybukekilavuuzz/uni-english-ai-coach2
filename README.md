@@ -15,7 +15,7 @@ Kullanıcıya şu üçlü yapıyı sunar:
     İnteraktif Quiz: Metne dayalı 3 adet çoktan seçmeli soru.
 
 🔗 Linkler 
-Yayın Linki: [Buraya Vercel Linkini Yapıştır] 
+Yayın Linki: https://uni-english-ai-coach2.vercel.app/
 Demo Video: [Buraya Loom Linkini Yapıştır]
 
 🛠️ Kullanılan Teknolojiler 
