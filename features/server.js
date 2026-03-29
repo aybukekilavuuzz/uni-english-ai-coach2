@@ -1,67 +1,73 @@
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const path = require("path");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-// --- KRİTİK AYAR: API KEY ---
-// Vercel'deki değişken çalışmıyorsa, BURAYA tırnak içine yeni aldığın Key'i yapıştır.
-const API_KEY = process.env.GEMINI_API_KEY || "BURAYA_ALDIĞIN_API_KEYİ_YAPIŞTIR";
-
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-// Hata mesajındaki öneriye göre "models/" ön eki eklendi
-const MODEL_NAME = "models/gemini-1.5-flash";
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Analiz Fonksiyonu
+// --- SUNUM MODU (MOCK DATA) ---
+// API yoğunluğu olduğunda videoyu kurtaracak hazır veri seti
+function getMockResponse() {
+  return {
+    summary: [
+      "Artificial Intelligence (AI) is transforming how we process complex information.",
+      "Academic researchers use AI tools to summarize long articles quickly.",
+      "The system identifies key technical terms and provides simple meanings.",
+      "Interactive quizzes help students test their understanding of the text.",
+      "Modern UI designs improve the overall learning experience for students."
+    ],
+    terms: [
+      { term: "Neural Networks", meaning: "A series of algorithms that mimic the human brain." },
+      { term: "Data Mining", meaning: "The process of discovering patterns in large data sets." },
+      { term: "Algorithm", meaning: "A set of rules to be followed in calculations." },
+      { term: "Machine Learning", meaning: "AI that allows systems to learn from data." },
+      { term: "Automation", meaning: "The use of technology to perform tasks without human help." }
+    ],
+    quiz: [
+      {
+        question: "What is the primary benefit of using AI for academic research?",
+        options: ["Slower reading", "Saving time on summaries", "Deleting old files", "Printing more paper"],
+        answer: "Saving time on summaries"
+      },
+      {
+        question: "Which term describes AI learning from data patterns?",
+        options: ["Hard Drive", "Software Update", "Machine Learning", "Manual Entry"],
+        answer: "Machine Learning"
+      },
+      {
+        question: "What is the role of Neural Networks?",
+        options: ["Miming the brain", "Cleaning the keyboard", "Cooking food", "Playing music"],
+        answer: "Miming the brain"
+      }
+    ],
+    source: "demo-mode",
+    note: "Sunum modu aktif: Kesintisiz demo performansı için hazır veri kullanılıyor."
+  };
+}
+
+// Analiz Endpoint'i (Doğrudan Hazır Veri Döndürür)
 app.post("/analyze", async (req, res) => {
   try {
     const { text } = req.body;
     
     if (!text || text.length < 80) {
-      return res.status(400).json({ error: "Lütfen en az 80 karakterlik bir metin girin." });
+      return res.status(400).json({ error: "Lütfen analiz için yeterli uzunlukta bir metin girin." });
     }
 
-    // Modeli en temel haliyle çağırıyoruz
-    const model = genAI.getGenerativeModel({ 
-        model: MODEL_NAME,
-        generationConfig: { responseMimeType: "application/json" }
-    });
-
-    const prompt = `Analyze this academic text and return ONLY a JSON object with "summary" (5 bullets), "terms" (5 words+meanings), and "quiz" (3 questions with randomized options A-D). Text: ${text}`;
-
-    console.log("[Sistem] Analiz başlatılıyor: " + MODEL_NAME);
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const candidateText = response.text();
-
-    // JSON temizleme (Markdown işaretlerini kaldırır)
-    const jsonStr = candidateText.substring(
-        candidateText.indexOf("{"), 
-        candidateText.lastIndexOf("}") + 1
-    );
-
-    return res.json(JSON.parse(jsonStr));
+    // Bekleme efekti yaratmak için 1.5 saniye gecikme (Opsiyonel, daha gerçekçi durur)
+    setTimeout(() => {
+      return res.json(getMockResponse());
+    }, 1500);
 
   } catch (error) {
-    console.error("Detaylı Hata:", error);
-    return res.status(500).json({ 
-        error: "Sistem şu an meşgul veya API hatası oluştu.",
-        message: error.message 
-    });
+    return res.status(500).json({ error: "Sunucu hatası oluştu." });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Sunucu ${port} portunda hazır.`);
+  console.log(`Uni-English AI Coach (Sunum Modu) port ${port} üzerinde hazır.`);
 });
