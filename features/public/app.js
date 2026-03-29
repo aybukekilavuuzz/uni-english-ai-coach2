@@ -214,7 +214,8 @@ analyzeBtn.addEventListener("click", async () => {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || "Request failed.");
+      const errMsg = data.detail ? `${data.error} (${data.detail})` : (data.error || "Request failed.");
+      throw new Error(errMsg);
     }
 
     const parsed = normalizeClientData(data);
@@ -231,4 +232,5 @@ analyzeBtn.addEventListener("click", async () => {
     toggleLoading(false);
   }
 });
+
 
