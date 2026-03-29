@@ -17,7 +17,6 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
 const DEFAULT_GEMINI_MODELS = [
   "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
   "gemini-1.5-pro",
   "gemini-1.0-pro",
   "gemini-pro"
