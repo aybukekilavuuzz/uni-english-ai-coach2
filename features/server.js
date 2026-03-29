@@ -11,86 +11,45 @@ const app = express();
 const port = process.env.PORT || 3000;
 const geminiApiKey = process.env.GEMINI_API_KEY;
 /**
- * Sıra: env ile tek model zorlanabilir; yoksa önce sürümlü/latest adlar (çıplak `gemini-1.5-flash` çoğu projede 404).
- * 429 kotası olan model atlanıp sıradaki denenir (ör. `gemini-2.0-flash` limit 0 iken `flash-lite` çalışabilir).
+ * Yalnızca stabil metin modelleri kullanılması için sabitlendi.
+ * Ses (TTS) modellerinin yanlışlıkla seçilmesini ve 400 hatasını engeller.
  */
 const DEFAULT_GEMINI_MODELS = [
-  "gemini-2.5-flash-preview-05-20",
-  "gemini-2.5-flash",
-  "gemini-2.5-pro-preview-05-06",
-  "gemini-2.0-flash-001",
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-flash-002",
-  "gemini-2.0-flash-lite",
-  "gemini-2.0-flash",
+  "gemini-1.5-flash",
   "gemini-1.5-flash-8b",
-  "gemini-1.5-flash"
+  "gemini-1.5-pro",
+  "gemini-1.5-flash-latest"
 ];
 
 const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-
-let cachedListModelIds = null;
-let cachedListModelIdsAt = 0;
-const LIST_MODELS_TTL_MS = 10 * 60 * 1000;
 
 function dedupeModelNames(names) {
   return names.filter((name, i, arr) => name && arr.indexOf(name) === i);
 }
 
-/**
- * Bu API anahtarı için gerçekten var olan ve generateContent destekleyen modeller (REST ListModels).
- */
-async function fetchGeneratableModelIds(apiKey) {
-  const ver = process.env.GEMINI_API_VERSION === "v1" ? "v1" : "v1beta";
-  const url = `https://generativelanguage.googleapis.com/${ver}/models?key=${encodeURIComponent(apiKey)}`;
-  try {
-    const res = await fetch(url);
-    const bodyText = await res.text();
-    if (!res.ok) {
-      console.error("ListModels HTTP", res.status, bodyText.slice(0, 500));
-      return [];
-    }
-    const data = JSON.parse(bodyText);
-    const models = Array.isArray(data.models) ? data.models : [];
-    return models
-      .filter(
-        (m) =>
-          Array.isArray(m.supportedGenerationMethods) &&
-          m.supportedGenerationMethods.includes("generateContent")
-      )
-      .map((m) => String(m.name || "").replace(/^models\//, ""))
-      .filter(Boolean);
-  } catch (e) {
-    console.error("ListModels failed:", e);
-    return [];
-  }
-}
-
 async function buildGeminiModelCandidates(apiKey) {
-  const now = Date.now();
-  if (!cachedListModelIds || now - cachedListModelIdsAt > LIST_MODELS_TTL_MS) {
-    cachedListModelIds = await fetchGeneratableModelIds(apiKey);
-    cachedListModelIdsAt = now;
-    if (cachedListModelIds.length) {
-      console.log(
-        "Gemini ListModels (generateContent), first IDs:",
-        cachedListModelIds.slice(0, 12).join(", ") + (cachedListModelIds.length > 12 ? " …" : "")
-      );
-    } else {
-      console.warn("Gemini ListModels returned no generateContent models (or ListModels failed).");
-    }
-  }
   const envModel = process.env.GEMINI_MODEL;
-  return dedupeModelNames([envModel, ...cachedListModelIds, ...DEFAULT_GEMINI_MODELS]);
+  // Her zaman en stabil olan gemini-1.5-flash'ı önceliklendir (kullanıcının env değişkeni haricinde)
+  return dedupeModelNames([envModel, "gemini-1.5-flash", ...DEFAULT_GEMINI_MODELS]);
 }
 
 /** İsteğe bağlı: GEMINI_API_VERSION=v1 | v1beta (varsayılan: SDK = v1beta, yani ikinci argüman verilmez). */
 function getGeminiModel(modelName) {
+  console.log(`[getGeminiModel] Initializing strictly with model: ${modelName}`);
   const ver = process.env.GEMINI_API_VERSION;
+  
+  // JSON formatını zorlamak için generationConfig ekliyoruz
+  const config = {
+    model: modelName,
+    generationConfig: {
+      responseMimeType: "application/json"
+    }
+  };
+  
   if (ver && ver !== "v1beta") {
-    return genAI.getGenerativeModel({ model: modelName }, { apiVersion: ver });
+    return genAI.getGenerativeModel(config, { apiVersion: ver });
   }
-  return genAI.getGenerativeModel({ model: modelName });
+  return genAI.getGenerativeModel(config);
 }
 
 /** 404: model yok; 429: kota — sıradaki modele geç. */
