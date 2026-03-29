@@ -15,10 +15,12 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
  * Ses (TTS) modellerinin yanlışlıkla seçilmesini ve 400 hatasını engeller.
  */
 const DEFAULT_GEMINI_MODELS = [
+  "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
+  "gemini-1.5-flash-latest",
   "gemini-1.5-pro",
-  "gemini-1.5-flash"
+  "gemini-1.0-pro",
+  "gemini-pro"
 ];
 
 const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
@@ -55,14 +57,19 @@ function getGeminiModel(modelName) {
 /** 404: model yok; 429: kota — sıradaki modele geç. */
 function shouldTryNextGeminiModel(error) {
   const status = error?.status;
-  if (status === 404 || status === 429) return true;
+  // 400 Bad Request: Gelecekteki modellerde JSON/Mime desteği yoksa veya şema hatası verirse
+  // 404 Not Found: Model o anahtara/bölgeye açık değilse
+  // 429 Too Many Requests: Kota dolduysa
+  if (status === 404 || status === 429 || status === 400) return true;
   const msg = String(error?.message || error || "").toLowerCase();
   return (
     msg.includes("404") ||
     msg.includes("not found") ||
     msg.includes("429") ||
     msg.includes("quota") ||
-    msg.includes("resource exhausted")
+    msg.includes("resource exhausted") ||
+    msg.includes("400") ||
+    msg.includes("bad request")
   );
 }
 
