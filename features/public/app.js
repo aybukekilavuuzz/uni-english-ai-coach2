@@ -232,5 +232,3 @@ analyzeBtn.addEventListener("click", async () => {
     toggleLoading(false);
   }
 });
-
-
