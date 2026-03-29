@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
+const os = require("os");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
@@ -308,13 +309,13 @@ app.post("/analyze", async (req, res) => {
           ...mockResponse(),
           source: "mock",
           note:
-            "Gemini tüm modellerde başarısız (404 ve/veya kota 0). MOCK_ON_GEMINI_FAILURE açık olduğu için örnek yanıt döndürüldü. Yeni API anahtarı / faturalandırma / kota için: https://aistudio.google.com/apikey"
+            "Gemini failed across all models (404 and/or quota exceeded). A mock response was returned since MOCK_ON_GEMINI_FAILURE is enabled. For a new API key, billing, or quota: https://aistudio.google.com/apikey"
         });
       }
       if (saw429) {
         return res.status(429).json({
           error:
-            "Gemini’de en az bir modelde kota aşıldı veya ücretsiz planda limit 0 (logdaki gibi). Faturalandırmayı açın, başka bir Google projesinden API anahtarı deneyin veya https://ai.dev/rate-limit üzerinden kotayı kontrol edin.",
+            "Quota exceeded for at least one Gemini model, or the free tier limit is 0. Please enable billing, try an API key from a different Google project, or check your rate limits.",
           detail: lastError.message,
           saw404,
           docs: "https://ai.google.dev/gemini-api/docs/rate-limits"
@@ -322,7 +323,7 @@ app.post("/analyze", async (req, res) => {
       }
       return res.status(502).json({
         error:
-          "Hiçbir Gemini modeli bu anahtar ile kullanılamadı (çoğu 404: hesabınızda bu model adları yok). AI Studio’da yeni anahtar oluşturun veya ListModels çıktısındaki tam model adını GEMINI_MODEL olarak verin.",
+          "No Gemini models are accessible with this API key (404: models not granted). Please generate a new key in AI Studio or specify the exact model name under GEMINI_MODEL.",
         detail: lastError.message,
         docs: "https://aistudio.google.com/apikey"
       });
@@ -355,7 +356,7 @@ app.post("/analyze", async (req, res) => {
     if (error?.status === 429) {
       return res.status(429).json({
         error:
-          "Gemini API kotası aşıldı. Bir süre sonra tekrar deneyin veya https://ai.google.dev/gemini-api/docs/rate-limits adresinden kotayı kontrol edin.",
+          "Gemini API quota exceeded. Please try again later or check your limits at https://ai.google.dev/gemini-api/docs/rate-limits.",
         detail: error.message
       });
     }
@@ -366,6 +367,17 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(`Uni-English AI Coach running on http://localhost:${port}`);
+  
+  const nets = os.networkInterfaces();
+  console.log("\nTo test from a tablet or phone, connect to the same Wi-Fi network and access one of the following addresses:");
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        console.log(`=> http://${net.address}:${port}`);
+      }
+    }
+  }
+  console.log("");
 });
