@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
-const os = require("os");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
@@ -10,76 +9,59 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- DİKKAT: API KEY AYARI ---
-// Vercel'deki Environment Variable çalışmazsa, tırnak içine yeni aldığın Key'i yazabilirsin.
-// Eğer Vercel çalışıyorsa process.env.GEMINI_API_KEY kısmına dokunma.
-const geminiApiKey = process.env.GEMINI_API_KEY || "BURAYA_ALDIĞIN_YENİ_KEYİ_YAPIŞTIRABİLİRSİN";
+// --- KRİTİK AYAR: API KEY ---
+// Vercel'deki değişken çalışmıyorsa, BURAYA tırnak içine yeni aldığın Key'i yapıştır.
+const API_KEY = process.env.GEMINI_API_KEY || "BURAYA_ALDIĞIN_API_KEYİ_YAPIŞTIR";
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-// MODEL SADECE gemini-1.5-flash OLARAK SABİTLENDİ
-const GEMINI_MODEL_NAME = "gemini-1.5-flash";
-
-function getGeminiModel() {
-  if (!genAI) return null;
-  return genAI.getGenerativeModel({
-    model: GEMINI_MODEL_NAME,
-    generationConfig: { responseMimeType: "application/json" }
-  });
-}
+// Hata mesajındaki öneriye göre "models/" ön eki eklendi
+const MODEL_NAME = "models/gemini-1.5-flash";
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Prompt Yapılandırması (A2-B1 Seviyesi Özet)
-function buildPrompt(text) {
-  return `Analyze the following academic English text and return ONLY JSON.
-Rules:
-- Output valid JSON only, no markdown fences.
-- Keep summary simple (A2-B1 CEFR level).
-- IMPORTANT: Randomize the positions of correct answers in the quiz.
-{
-  "summary": ["sent1", "sent2", "sent3", "sent4", "sent5"],
-  "terms": [{ "term": "...", "meaning": "..." }],
-  "quiz": [{ "question": "...", "options": ["A", "B", "C", "D"], "answer": "A" }]
-}
-Text: ${text}`.trim();
-}
-
-// Analiz Endpoint'i
+// Analiz Fonksiyonu
 app.post("/analyze", async (req, res) => {
   try {
-    const { text } = req.body || {};
-    if (!text || text.length < 80) {
-      return res.status(400).json({ error: "Please enter at least 80 characters." });
-    }
-
-    if (!genAI) {
-      return res.status(500).json({ error: "API Key is missing!" });
-    }
-
-    const model = getGeminiModel();
-    const prompt = buildPrompt(text);
+    const { text } = req.body;
     
-    console.log("[Gemini] Requesting: " + GEMINI_MODEL_NAME);
+    if (!text || text.length < 80) {
+      return res.status(400).json({ error: "Lütfen en az 80 karakterlik bir metin girin." });
+    }
+
+    // Modeli en temel haliyle çağırıyoruz
+    const model = genAI.getGenerativeModel({ 
+        model: MODEL_NAME,
+        generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const prompt = `Analyze this academic text and return ONLY a JSON object with "summary" (5 bullets), "terms" (5 words+meanings), and "quiz" (3 questions with randomized options A-D). Text: ${text}`;
+
+    console.log("[Sistem] Analiz başlatılıyor: " + MODEL_NAME);
+    
     const result = await model.generateContent(prompt);
-    const candidate = result.response.text();
+    const response = await result.response;
+    const candidateText = response.text();
 
-    // JSON temizleme ve gönderme
-    const jsonText = candidate.substring(candidate.indexOf("{"), candidate.lastIndexOf("}") + 1);
-    const parsed = JSON.parse(jsonText);
+    // JSON temizleme (Markdown işaretlerini kaldırır)
+    const jsonStr = candidateText.substring(
+        candidateText.indexOf("{"), 
+        candidateText.lastIndexOf("}") + 1
+    );
 
-    return res.json({ ...parsed, source: "gemini" });
+    return res.json(JSON.parse(jsonStr));
 
   } catch (error) {
-    console.error("Error:", error.message);
-    return res.status(error.status || 500).json({ 
-        error: "Gemini Error: " + error.message 
+    console.error("Detaylı Hata:", error);
+    return res.status(500).json({ 
+        error: "Sistem şu an meşgul veya API hatası oluştu.",
+        message: error.message 
     });
   }
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Uni-English AI Coach running on http://localhost:${port}`);
+app.listen(port, () => {
+  console.log(`Sunucu ${port} portunda hazır.`);
 });
