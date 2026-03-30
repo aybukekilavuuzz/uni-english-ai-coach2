@@ -6,6 +6,7 @@ const summaryList = document.getElementById("summaryList");
 const termsList = document.getElementById("termsList");
 const quizList = document.getElementById("quizList");
 const loadingState = document.getElementById("loadingState");
+const btnLabel = document.getElementById("btnLabel");
 
 function setStatus(message, isError = false) {
   statusText.textContent = message;
@@ -15,6 +16,7 @@ function setStatus(message, isError = false) {
 function toggleLoading(isLoading) {
   analyzeBtn.disabled = isLoading || inputText.value.trim().length < 80;
   analyzeBtn.classList.toggle("is-loading", isLoading);
+  if (btnLabel) btnLabel.classList.toggle("hidden", isLoading);
   if (loadingState) {
     loadingState.classList.toggle("hidden", !isLoading);
   }
@@ -120,20 +122,37 @@ function displayQuiz(quiz) {
   answeredQuestions = 0;
   
   currentQuizData = quiz.map(item => {
-    const normalizedCorrect = normalizeAnswer(item.answer);
+    const originalOptions = item.options || [];
+    let correctIndex = -1;
+    const rawAnswer = String(item.answer || "").trim().toUpperCase();
     
-    let optionsObjects = (item.options || []).map(optText => {
+    // İlk olarak cevabın sadece 'A', 'B' gibi bir harf olup olmadığını kontrol et
+    const letterMatch = rawAnswer.match(/^[A-D]/);
+    if (letterMatch && rawAnswer.length <= 3) {
+      correctIndex = letterMatch[0].charCodeAt(0) - 65; 
+    }
+    
+    // Harf değilse veya eşleşemiyorsa tam metin ile eşleştirmeyi dene
+    if (correctIndex < 0 || correctIndex >= originalOptions.length) {
+      const normalizedCorrect = normalizeAnswer(item.answer);
+      correctIndex = originalOptions.findIndex(optText => normalizeAnswer(optText) === normalizedCorrect);
+    }
+    
+    // Bulunamazsa güvenlik amacıyla ilk şıkkı (0) doğru kabul et
+    if (correctIndex < 0 || correctIndex >= originalOptions.length) {
+      correctIndex = 0;
+    }
+    
+    // Şık objelerine, karıştırmadan ÖNCE doğru cevabı kalıcı olarak mühürle
+    let optionsObjects = originalOptions.map((optText, i) => {
       return {
         text: stripOptionPrefix(optText),
-        isCorrect: normalizeAnswer(optText) === normalizedCorrect
+        isCorrect: i === correctIndex
       };
     });
     
+    // Objeleri tamamen rastgele karıştır, 'isCorrect' true etiketi rastgele bir yere taşınsın
     optionsObjects = shuffleArray(optionsObjects);
-    
-    if (optionsObjects.length > 0 && !optionsObjects.some(o => o.isCorrect)) {
-       optionsObjects[0].isCorrect = true; 
-    }
 
     return {
       question: item.question || "",
@@ -203,7 +222,7 @@ analyzeBtn.addEventListener("click", async () => {
 
   try {
     toggleLoading(true);
-    setStatus("Analyzing text...");
+    setStatus(""); // Clear previous errors if any
     results.classList.add("hidden");
 
     const response = await fetch("/analyze", {
@@ -224,8 +243,7 @@ analyzeBtn.addEventListener("click", async () => {
     displayQuiz(parsed.quiz);
 
     results.classList.remove("hidden");
-    const source = data.source === "gemini" ? "Gemini" : "Mock";
-    setStatus(`Done. Response source: ${source}.`);
+    setStatus(""); 
   } catch (error) {
     setStatus(error.message || "Unexpected error happened.", true);
   } finally {
