@@ -11,7 +11,7 @@ const port = process.env.PORT || 3000;
 
 // --- GROQ API YAPILANDIRMASI ---
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || "BURAYA_ALDIĞIN_GSK_KEYINI_YAPIŞTIR"
+  apiKey: process.env.GROQ_API_KEY || "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"
 });
 
 app.use(cors());
