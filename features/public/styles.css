@@ -21,14 +21,12 @@
   /* Rounded Corners */
   --radius-xl: 32px;
   --radius-lg: 24px;
-  --radius-pill: 9999px;
+  --radius-pill: 9999px; /* Tam yuvarlak hatlar için */
   
   /* Shadows */
   --shadow-sm: 0 4px 12px rgba(30, 58, 138, 0.05);
   --shadow-card: 0 16px 48px rgba(30, 58, 138, 0.08);
   --shadow-focus: 0 0 0 4px rgba(13, 148, 136, 0.3);
-  --shadow-neon-correct: 0 0 20px rgba(16, 185, 129, 0.4);
-  --shadow-neon-wrong: 0 0 20px rgba(239, 68, 68, 0.4);
   
   --font: "Inter", system-ui, -apple-system, sans-serif;
   --space-sm: 12px;
@@ -85,14 +83,6 @@ body {
   font-weight: 500;
 }
 
-.lead {
-  text-align: center;
-  font-size: 1.15rem;
-  color: var(--color-text);
-  max-width: 600px;
-  margin: 0 auto var(--space-xl);
-}
-
 /* Glassmorphism Panels */
 .panel, .result-card {
   background: var(--color-surface);
@@ -103,7 +93,7 @@ body {
   padding: var(--space-lg);
   box-shadow: var(--shadow-card);
   margin-bottom: var(--space-xl);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .panel:hover, .result-card:hover {
@@ -120,21 +110,12 @@ body {
 }
 
 /* Inputs */
-.field-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--color-heading);
-  font-size: 0.95rem;
-}
 .input-textarea {
   width: 100%;
   padding: 16px;
   border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
-  font-family: inherit;
   font-size: 1rem;
-  color: var(--color-text);
   background: rgba(255, 255, 255, 0.5);
   resize: vertical;
   min-height: 150px;
@@ -147,204 +128,126 @@ body {
   background: #fff;
 }
 
-/* Teal-Green Gradient Buttons */
-.input-actions {
-  margin-top: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 28px;
-  font-weight: 600;
-  font-size: 1rem;
-  border-radius: var(--radius-pill);
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-}
+/* Buttons */
 .btn--primary {
   background: linear-gradient(135deg, #0d9488 0%, #10b981 100%);
   color: #fff;
+  padding: 14px 28px;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
   box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.3s ease;
 }
 .btn--primary:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.03);
   box-shadow: 0 10px 25px rgba(13, 148, 136, 0.4);
 }
-.btn--primary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  transform: none;
-  background: #94a3b8;
-  box-shadow: none;
+
+/* Quiz UI - TAM İSTEDİĞİN MODERN GÖRÜNÜM */
+.quiz-item {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+}
+.quiz-item__q {
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--color-heading);
+  font-size: 1.1rem;
 }
 
-/* Loading State inside button */
-.loading-state {
-  display: inline-flex;
+.quiz-options {
+  display: grid;
+  gap: 12px;
+}
+
+/* Şık Butonu - Beyaz ve Yuvarlak */
+.quiz-option-btn {
+  width: 100%;
+  text-align: left;
+  padding: 16px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-pill); /* Tam yuvarlak hatlar */
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
+  justify-content: space-between;
 }
-.hidden { display: none !important; }
 
+.quiz-option-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Doğru Cevap - Yeşil Border & İkon */
+.quiz-option-btn.correct {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border: 2px solid #10b981 !important;
+  color: #065f46 !important;
+  font-weight: 600;
+}
+
+/* Yanlış Cevap - Kırmızı Border & İkon */
+.quiz-option-btn.wrong {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border: 2px solid #ef4444 !important;
+  color: #991b1b !important;
+  font-weight: 600;
+}
+
+/* Genel Skor - Teal Blok */
+.score-card {
+  margin-top: var(--space-xl);
+  background: #0d9488; /* Koyu yeşil / Teal */
+  padding: 25px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(13, 148, 136, 0.3);
+}
+.score-title {
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.5rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Groq Footer */
+.groq-footer {
+  text-align: center;
+  padding: 20px;
+}
+.groq-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Spinner */
 .spinner {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
 
-/* Results */
-.results-grid {
-  display: grid;
-  gap: var(--space-xl);
-}
-.result-list {
-  margin: 0;
-  padding-left: 1.2rem;
-}
-.result-list li {
-  margin-bottom: 12px;
-  padding-left: 4px;
-}
-.result-list--terms {
-  list-style: none;
-  padding: 0;
-}
-.result-list--terms li {
-  background: rgba(255, 255, 255, 0.5);
-  margin-bottom: 12px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  border: 1px solid var(--color-border);
-  transition: transform 0.2s ease;
-}
-.result-list--terms li:hover {
-  transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.8);
-}
-.term-name {
-  font-weight: 700;
-  color: var(--color-primary);
-  display: block;
-  font-size: 1.05rem;
-  margin-bottom: 2px;
-}
-
-/* Quiz UI with Micro-interactions */
-.quiz-item {
-  margin-bottom: var(--space-lg);
-  padding: var(--space-md);
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-}
-.quiz-item__q {
-  font-weight: 700;
-  margin: 0 0 16px;
-  color: var(--color-heading);
-  font-size: 1.1rem;
-}
-.quiz-options {
-  display: grid;
-  gap: 10px;
-}
-.quiz-option {
-  width: 100%;
-  text-align: left;
-  padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 2px solid transparent;
-  border-radius: var(--radius-pill);
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.quiz-option:hover:not(:disabled) {
-  background: #fff;
-  border-color: var(--color-primary-soft);
-  transform: scale(1.02);
-  box-shadow: 0 6px 15px rgba(13, 148, 136, 0.08);
-}
-.quiz-option.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-hover);
-}
-.quiz-option.correct {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
-  color: #065f46;
-  box-shadow: var(--shadow-neon-correct);
-  transform: scale(1.02);
-}
-.quiz-option.wrong {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-  color: #7f1d1d;
-  box-shadow: var(--shadow-neon-wrong);
-}
-
-.icon { font-size: 1.1rem; }
-
-/* Status */
-.status {
-  margin-top: 12px;
-  font-size: 0.9rem;
-  color: #ef4444;
-  font-weight: 500;
-}
-
-/* Groq Footer Badge */
-.groq-footer {
-  text-align: center;
-  margin-top: -10px;
-  padding-top: 20px;
-}
-.groq-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(13, 148, 136, 0.2);
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  transition: all 0.3s ease;
-}
-.groq-badge:hover {
-  background: #fff;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-/* Responsive Grid for Tablets and wider */
 @media (min-width: 768px) {
-  .results-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .result-card--quiz {
-    grid-column: 1 / -1;
-  }
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); }
+  .result-card--quiz { grid-column: 1 / -1; }
 }
