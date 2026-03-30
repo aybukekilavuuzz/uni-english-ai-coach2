@@ -8,6 +8,11 @@ const quizList = document.getElementById("quizList");
 const loadingState = document.getElementById("loadingState");
 const btnLabel = document.getElementById("btnLabel");
 
+// Skor takibi için global değişkenler
+let currentQuizData = [];
+let userScore = 0;
+let answeredQuestions = 0;
+
 function setStatus(message, isError = false) {
   statusText.textContent = message;
   statusText.classList.toggle("error", isError);
@@ -15,7 +20,6 @@ function setStatus(message, isError = false) {
 
 function toggleLoading(isLoading) {
   analyzeBtn.disabled = isLoading || inputText.value.trim().length < 80;
-  analyzeBtn.classList.toggle("is-loading", isLoading);
   if (btnLabel) btnLabel.classList.toggle("hidden", isLoading);
   if (loadingState) {
     loadingState.classList.toggle("hidden", !isLoading);
@@ -46,151 +50,126 @@ function renderTerms(terms) {
   });
 }
 
-let currentQuizData = [];
-let userScore = 0;
-let answeredQuestions = 0;
-
+// Şıklardaki A) B) gibi önekleri temizler
 function stripOptionPrefix(s) {
   return String(s || "").replace(/^[A-D][\.\)\-\:]\s*/i, "").trim();
 }
 
-function normalizeAnswer(s) {
-  return stripOptionPrefix(s).toLowerCase();
-}
-
-function showScoreCard() {
-  const scoreCard = document.createElement("div");
-  scoreCard.className = "score-card";
-  scoreCard.innerHTML = `
-    <h3 class="score-title">General Score: ${userScore}/${currentQuizData.length}</h3>
-  `;
-  quizList.appendChild(scoreCard);
-}
-
+// Cevap Kontrolü: Tıklama anında ikonları ve renkleri yönetir
 function handleAnswer(event) {
   const btn = event.currentTarget;
-  const optionsEl = btn.parentElement;
+  const optionsContainer = btn.parentElement;
   
-  if (!optionsEl || optionsEl.dataset.answered === "1") return;
-  optionsEl.dataset.answered = "1";
+  // Eğer soruya zaten cevap verildiyse işlem yapma
+  if (optionsContainer.dataset.answered === "true") return;
+  optionsContainer.dataset.answered = "true";
 
   const qIndex = parseInt(btn.dataset.qindex, 10);
   const optIndex = parseInt(btn.dataset.optindex, 10);
-
   const questionData = currentQuizData[qIndex];
-  const clickedOption = questionData.options[optIndex];
-  const isCorrect = clickedOption.isCorrect;
-
-  console.log(`[handleAnswer] Soru Index: ${qIndex}, Şık Index: ${optIndex}, Seçilen Doğru mu: ${isCorrect}`, clickedOption);
+  const isCorrect = questionData.options[optIndex].isCorrect;
 
   if (isCorrect) {
     userScore++;
   }
   answeredQuestions++;
 
-  console.log(`[Skor] Güncel Skor: ${userScore}/${currentQuizData.length}, Cevaplanan Soru: ${answeredQuestions}`);
-
-  const buttons = optionsEl.querySelectorAll(".quiz-option-btn");
-  questionData.options.forEach((optData, i) => {
+  // Tüm butonları devre dışı bırak ve doğru/yanlış renklerini/ikonlarını ekle
+  const buttons = optionsContainer.querySelectorAll(".quiz-option-btn");
+  questionData.options.forEach((opt, i) => {
     buttons[i].disabled = true;
+    const iconSpan = buttons[i].querySelector(".opt-icon");
     
-    if (optData.isCorrect) {
+    if (opt.isCorrect) {
+      // Doğru şık her zaman yeşil olur
       buttons[i].classList.add("correct");
+      iconSpan.innerHTML = "&#10003;"; // ✓
     } else if (i === optIndex && !isCorrect) {
+      // Eğer kullanıcı yanlış şıkka tıkladıysa o kırmızı olur
       buttons[i].classList.add("wrong");
+      iconSpan.innerHTML = "&#10007;"; // ✕
     }
   });
 
-  if (answeredQuestions === currentQuizData.length && currentQuizData.length > 0) {
+  // Quiz bittiyse o havalı yeşil skor kartını göster
+  if (answeredQuestions === currentQuizData.length) {
     showScoreCard();
   }
 }
 
+function showScoreCard() {
+  // Eski skor kartı varsa temizle
+  const oldCard = document.querySelector(".score-card");
+  if (oldCard) oldCard.remove();
+
+  const scoreCard = document.createElement("div");
+  scoreCard.className = "score-card";
+  scoreCard.innerHTML = `<h3 class="score-title">General Score: ${userScore} / ${currentQuizData.length}</h3>`;
+  quizList.appendChild(scoreCard);
+}
+
 function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
+  for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [array[i], array[j]] = [array[j], array[i]];
   }
-  return arr;
+  return array;
 }
 
 function displayQuiz(quiz) {
   quizList.innerHTML = "";
-  
   userScore = 0;
   answeredQuestions = 0;
   
-  currentQuizData = quiz.map(item => {
-    const originalOptions = item.options || [];
-    let correctIndex = -1;
-    const rawAnswer = String(item.answer || "").trim().toUpperCase();
+  currentQuizData = quiz.map((item, qIndex) => {
+    const rawOptions = Array.isArray(item.options) ? item.options : [];
+    const rawAnswer = String(item.answer || "").trim();
     
-    // İlk olarak cevabın sadece 'A', 'B' gibi bir harf olup olmadığını kontrol et
-    const letterMatch = rawAnswer.match(/^[A-D]/);
-    if (letterMatch && rawAnswer.length <= 3) {
-      correctIndex = letterMatch[0].charCodeAt(0) - 65; 
-    }
-    
-    // Harf değilse veya eşleşemiyorsa tam metin ile eşleştirmeyi dene
-    if (correctIndex < 0 || correctIndex >= originalOptions.length) {
-      const normalizedCorrect = normalizeAnswer(item.answer);
-      correctIndex = originalOptions.findIndex(optText => normalizeAnswer(optText) === normalizedCorrect);
-    }
-    
-    // Bulunamazsa güvenlik amacıyla ilk şıkkı (0) doğru kabul et
-    if (correctIndex < 0 || correctIndex >= originalOptions.length) {
-      correctIndex = 0;
-    }
-    
-    // Şık objelerine, karıştırmadan ÖNCE doğru cevabı kalıcı olarak mühürle
-    let optionsObjects = originalOptions.map((optText, i) => {
-      return {
-        text: stripOptionPrefix(optText),
-        isCorrect: i === correctIndex
-      };
-    });
-    
-    // Objeleri tamamen rastgele karıştır, 'isCorrect' true etiketi rastgele bir yere taşınsın
+    // Doğru şıkkı bul ve işaretle
+    let optionsObjects = rawOptions.map(optText => ({
+      text: stripOptionPrefix(optText),
+      isCorrect: stripOptionPrefix(optText).toLowerCase() === stripOptionPrefix(rawAnswer).toLowerCase()
+    }));
+
+    // Eğer hiçbir şık eşleşmediyse (hata önleyici), ilk şıkkı doğru kabul et
+    if (!optionsObjects.some(o => o.isCorrect)) optionsObjects[0].isCorrect = true;
+
+    // Şıkları karıştır
     optionsObjects = shuffleArray(optionsObjects);
 
-    return {
-      question: item.question || "",
-      options: optionsObjects
-    };
+    return { question: item.question, options: optionsObjects };
   });
 
+  // Soruları ekrana bas
   currentQuizData.forEach((qData, qIndex) => {
     const block = document.createElement("div");
-    block.className = "quiz-question";
+    block.className = "quiz-item";
 
-    const q = document.createElement("p");
-    q.className = "quiz-q";
-    q.textContent = qData.question;
-    block.appendChild(q);
+    const qText = document.createElement("p");
+    qText.className = "quiz-item__q";
+    qText.textContent = qData.question;
+    block.appendChild(qText);
 
-    const optionsEl = document.createElement("div");
-    optionsEl.className = "quiz-options";
-    optionsEl.dataset.qindex = qIndex;
+    const optionsGrid = document.createElement("div");
+    optionsGrid.className = "quiz-options";
 
     const letters = ["A", "B", "C", "D"];
-
-    qData.options.forEach((optData, optIndex) => {
+    qData.options.forEach((opt, optIndex) => {
       const btn = document.createElement("button");
-      btn.type = "button";
       btn.className = "quiz-option-btn";
-      
-      const letter = letters[optIndex] || "*";
-      btn.textContent = `${letter}) ${optData.text}`;
-      
       btn.dataset.qindex = qIndex;
       btn.dataset.optindex = optIndex;
       
+      btn.innerHTML = `
+        <span class="opt-text">${letters[optIndex]}) ${opt.text}</span>
+        <span class="opt-icon"></span>
+      `;
+      
       btn.addEventListener("click", handleAnswer);
-      optionsEl.appendChild(btn);
+      optionsGrid.appendChild(btn);
     });
 
-    block.appendChild(optionsEl);
+    block.appendChild(optionsGrid);
     quizList.appendChild(block);
   });
 }
@@ -206,23 +185,16 @@ function normalizeClientData(data) {
 inputText.addEventListener("input", () => {
   const enoughLength = inputText.value.trim().length >= 80;
   analyzeBtn.disabled = !enoughLength;
-  if (!enoughLength) {
-    setStatus("Please enter at least 80 characters.");
-  } else {
-    setStatus("");
-  }
+  setStatus(enoughLength ? "" : "Please enter at least 80 characters.");
 });
 
 analyzeBtn.addEventListener("click", async () => {
   const text = inputText.value.trim();
-  if (text.length < 80) {
-    setStatus("Please enter at least 80 characters of academic text.", true);
-    return;
-  }
+  if (text.length < 80) return;
 
   try {
     toggleLoading(true);
-    setStatus(""); // Clear previous errors if any
+    setStatus("");
     results.classList.add("hidden");
 
     const response = await fetch("/analyze", {
@@ -232,10 +204,7 @@ analyzeBtn.addEventListener("click", async () => {
     });
 
     const data = await response.json();
-    if (!response.ok) {
-      const errMsg = data.detail ? `${data.error} (${data.detail})` : (data.error || "Request failed.");
-      throw new Error(errMsg);
-    }
+    if (!response.ok) throw new Error(data.error || "Request failed.");
 
     const parsed = normalizeClientData(data);
     renderSummary(parsed.summary);
@@ -243,9 +212,8 @@ analyzeBtn.addEventListener("click", async () => {
     displayQuiz(parsed.quiz);
 
     results.classList.remove("hidden");
-    setStatus(""); 
   } catch (error) {
-    setStatus(error.message || "Unexpected error happened.", true);
+    setStatus(error.message, true);
   } finally {
     toggleLoading(false);
   }
