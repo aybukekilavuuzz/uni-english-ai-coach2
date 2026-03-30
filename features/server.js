@@ -2,58 +2,75 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk"); // Groq kütüphanesi
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// API KEY: Vercel'deki değişkeni okur, yoksa manuel yazdığını okur.
-const API_KEY = process.env.GEMINI_API_KEY || "YENI_ALDIĞIN_API_KEYI_BURAYA_YAZ";
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-// Model ismini 'models/' ön ekiyle yazmak en güvenlisidir
-const MODEL_NAME = "models/gemini-1.5-flash";
+// --- GROQ API YAPILANDIRMASI ---
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || "BURAYA_ALDIĞIN_GSK_KEYINI_YAPIŞTIR"
+});
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Analiz Endpoint'i
 app.post("/analyze", async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text || text.length < 80) return res.status(400).json({ error: "Text too short." });
+    
+    if (!text || text.length < 80) {
+      return res.status(400).json({ error: "Lütfen en az 80 karakterlik akademik bir metin girin." });
+    }
 
-    const model = genAI.getGenerativeModel({ 
-        model: MODEL_NAME,
-        generationConfig: { responseMimeType: "application/json" }
+    console.log("[Sistem] Groq Llama-3 ile analiz başlatılıyor...");
+
+    // Groq API Çağrısı (Işık hızında!)
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are an academic English assistant. Return ONLY valid JSON."
+        },
+        {
+          role: "user",
+          content: `Analyze the following text and return a JSON object with this exact schema:
+          {
+            "summary": ["exactly 5 bullet sentences in simple A2-B1 English"],
+            "terms": [{"term": "technical word", "meaning": "simple definition"}],
+            "quiz": [{"question": "text", "options": ["A", "B", "C", "D"], "answer": "correct_option_text"}]
+          }
+          Constraints: Exactly 5 bullets for summary, 5 terms, and 3 quiz questions.
+          Text: ${text}`
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Groq'un en iyi ve hızlı modeli
+      response_format: { type: "json_object" } // JSON garantisi
     });
 
-    const prompt = `Analyze this academic English text and return ONLY a JSON object.
-    Required Schema: { "summary": ["5 bullets"], "terms": [{"term":"word","meaning":"definition"}], "quiz": [{"question":"q","options":["A","B","C","D"],"answer":"correct_answer_text"}] }
-    Text: ${text}`;
+    const responseContent = chatCompletion.choices[0].message.content;
+    const parsedData = JSON.parse(responseContent);
 
-    console.log("[Sistem] Gerçek AI Analizi Başlatılıyor...");
+    console.log("[Sistem] Analiz başarıyla tamamlandı.");
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const candidateText = response.text();
-    
-    // JSON Temizleme (Markdown işaretlerini siler)
-    const jsonStr = candidateText.substring(candidateText.indexOf("{"), candidateText.lastIndexOf("}") + 1);
-    
-    return res.json(JSON.parse(jsonStr));
+    return res.json({
+      ...parsedData,
+      source: "groq-ai"
+    });
 
   } catch (error) {
-    console.error("API Hatası:", error.message);
+    console.error("Groq API Hatası:", error.message);
     return res.status(500).json({ 
-        error: "Yapay zeka şu an yanıt veremiyor.",
-        detail: error.message 
+      error: "Yapay zeka şu an meşgul, lütfen tekrar deneyin.",
+      detail: error.message 
     });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Uni-English AI Coach gerçek AI modunda ${port} portunda çalışıyor.`);
+  console.log(`Uni-English AI Coach GROQ ile port ${port} üzerinde uçuyor! 🚀`);
 });
