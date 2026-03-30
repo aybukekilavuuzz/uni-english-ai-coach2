@@ -43,12 +43,12 @@
 
         <div class="input-actions">
           <button type="button" id="analyzeBtn" class="btn btn--primary" disabled>
-            <span class="btn__label">Analyze</span>
+            <span class="btn__label" id="btnLabel">Analyze</span>
+            <div id="loadingState" class="loading-state hidden" role="status" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="loading-state__text">Analyzing with Groq LPU...</span>
+            </div>
           </button>
-          <div id="loadingState" class="loading-state hidden" role="status" aria-live="polite">
-            <span class="spinner" aria-hidden="true"></span>
-            <span class="loading-state__text">Analyzing...</span>
-          </div>
         </div>
         <p id="statusText" class="status"></p>
       </section>
@@ -68,6 +68,10 @@
           <h2 class="result-card__title">Mini quiz</h2>
           <div id="quizList" class="quiz-list"></div>
         </article>
+        
+        <div class="groq-footer">
+          <p class="groq-badge">Powered by Groq AI Infrastructure</p>
+        </div>
       </section>
     </main>
 
