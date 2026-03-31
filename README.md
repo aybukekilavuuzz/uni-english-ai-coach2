@@ -16,7 +16,7 @@ Kullanıcıya şu üçlü yapıyı sunar:
 
 🔗 Linkler 
 Yayın Linki: https://uni-english-ai-coach2.vercel.app/
-Demo Video: [Buraya Loom Linkini Yapıştır]
+Demo Video: https://www.loom.com/share/4f65479ae7984a27997fc5105f3fcebf
 
 🛠️ Kullanılan Teknolojiler 
 Frontend: HTML5, CSS3 (Modern UI), JavaScript 
